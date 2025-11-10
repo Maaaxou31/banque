@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banque</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div id="bank-container" style="display: none;">
+        <div class="bank-wrapper">
+            <div class="bank-header">
+                <h1>Banque</h1>
+                <button class="close-btn" id="close-btn">&times;</button>
+            </div>
+
+            <div class="bank-content">
+                <!-- Solde -->
+                <div class="balance-section">
+                    <div class="balance-label">Solde bancaire</div>
+                    <div class="balance-amount" id="balance-amount">$0</div>
+                </div>
+
+                <!-- Onglets -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="deposit">Déposer</button>
+                    <button class="tab-btn" data-tab="withdraw">Retirer</button>
+                    <button class="tab-btn" data-tab="transfer">Transférer</button>
+                </div>
+
+                <!-- Contenu des onglets -->
+                <div class="tab-content">
+                    <!-- Déposer -->
+                    <div class="tab-pane active" id="deposit-tab">
+                        <h3>Déposer de l'argent</h3>
+                        <p class="tab-description">Déposez votre argent liquide sur votre compte bancaire</p>
+                        <div class="input-group">
+                            <label for="deposit-amount">Montant</label>
+                            <input type="number" id="deposit-amount" placeholder="Entrez le montant" min="1">
+                        </div>
+                        <div class="quick-amounts">
+                            <button class="quick-btn" data-action="deposit" data-amount="100">$100</button>
+                            <button class="quick-btn" data-action="deposit" data-amount="500">$500</button>
+                            <button class="quick-btn" data-action="deposit" data-amount="1000">$1000</button>
+                            <button class="quick-btn" data-action="deposit" data-amount="5000">$5000</button>
+                        </div>
+                        <button class="action-btn deposit-btn" id="deposit-btn">Déposer</button>
+                    </div>
+
+                    <!-- Retirer -->
+                    <div class="tab-pane" id="withdraw-tab">
+                        <h3>Retirer de l'argent</h3>
+                        <p class="tab-description">Retirez de l'argent de votre compte bancaire</p>
+                        <div class="input-group">
+                            <label for="withdraw-amount">Montant</label>
+                            <input type="number" id="withdraw-amount" placeholder="Entrez le montant" min="1">
+                        </div>
+                        <div class="quick-amounts">
+                            <button class="quick-btn" data-action="withdraw" data-amount="100">$100</button>
+                            <button class="quick-btn" data-action="withdraw" data-amount="500">$500</button>
+                            <button class="quick-btn" data-action="withdraw" data-amount="1000">$1000</button>
+                            <button class="quick-btn" data-action="withdraw" data-amount="5000">$5000</button>
+                        </div>
+                        <button class="action-btn withdraw-btn" id="withdraw-btn">Retirer</button>
+                    </div>
+
+                    <!-- Transférer -->
+                    <div class="tab-pane" id="transfer-tab">
+                        <h3>Transférer de l'argent</h3>
+                        <p class="tab-description">Transférez de l'argent à un autre joueur</p>
+                        <div class="input-group">
+                            <label for="transfer-id">ID du joueur</label>
+                            <input type="number" id="transfer-id" placeholder="Entrez l'ID du joueur" min="1">
+                        </div>
+                        <div class="input-group">
+                            <label for="transfer-amount">Montant</label>
+                            <input type="number" id="transfer-amount" placeholder="Entrez le montant" min="1">
+                        </div>
+                        <button class="action-btn transfer-btn" id="transfer-btn">Transférer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
