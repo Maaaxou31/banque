@@ -1,20 +1,11 @@
--- Variables globales
-ESX = exports['es_extended']:getSharedObject()
-
--- Fonction pour obtenir le joueur
-local function GetPlayer(source)
-    return ESX.GetPlayerFromId(source)
-end
-
 -- Récupérer le solde bancaire d'un joueur
 RegisterServerEvent('es_banque:getBalance')
 AddEventHandler('es_banque:getBalance', function()
     local _source = source
-    local xPlayer = GetPlayer(_source)
+    local xPlayer = Framework.GetPlayer(_source)
 
     if xPlayer then
-        local bankAccount = xPlayer.getAccount('bank')
-        local balance = bankAccount and bankAccount.money or 0
+        local balance = Framework.GetBankMoney(xPlayer)
         TriggerClientEvent('es_banque:updateBalance', _source, balance)
     end
 end)
@@ -23,7 +14,7 @@ end)
 RegisterServerEvent('es_banque:deposit')
 AddEventHandler('es_banque:deposit', function(amount)
     local _source = source
-    local xPlayer = GetPlayer(_source)
+    local xPlayer = Framework.GetPlayer(_source)
 
     if not xPlayer then return end
 
@@ -40,22 +31,21 @@ AddEventHandler('es_banque:deposit', function(amount)
     end
 
     -- Vérifier si le joueur a assez d'argent liquide
-    local playerMoney = xPlayer.getMoney()
+    local playerMoney = Framework.GetPlayerMoney(xPlayer)
 
     if playerMoney >= amount then
         -- Retirer l'argent liquide et ajouter à la banque
-        xPlayer.removeMoney(amount)
-        xPlayer.addAccountMoney('bank', amount)
+        Framework.RemovePlayerMoney(xPlayer, amount)
+        Framework.AddBankMoney(xPlayer, amount)
 
         -- Récupérer le nouveau solde
-        local bankAccount = xPlayer.getAccount('bank')
-        local newBalance = bankAccount and bankAccount.money or 0
+        local newBalance = Framework.GetBankMoney(xPlayer)
 
         TriggerClientEvent('es_banque:updateBalance', _source, newBalance)
         TriggerClientEvent('es_banque:notify', _source, 'Dépôt de $' .. amount .. ' effectué avec succès', 'success')
 
         -- Log
-        print(('[es_banque] %s a déposé $%s'):format(xPlayer.identifier, amount))
+        print(('[es_banque] %s a déposé $%s'):format(Framework.GetPlayerIdentifier(xPlayer), amount))
     else
         TriggerClientEvent('es_banque:notify', _source, 'Vous n\'avez pas assez d\'argent liquide', 'error')
     end
@@ -65,7 +55,7 @@ end)
 RegisterServerEvent('es_banque:withdraw')
 AddEventHandler('es_banque:withdraw', function(amount)
     local _source = source
-    local xPlayer = GetPlayer(_source)
+    local xPlayer = Framework.GetPlayer(_source)
 
     if not xPlayer then return end
 
@@ -82,23 +72,21 @@ AddEventHandler('es_banque:withdraw', function(amount)
     end
 
     -- Vérifier le solde bancaire
-    local bankAccount = xPlayer.getAccount('bank')
-    local bankBalance = bankAccount and bankAccount.money or 0
+    local bankBalance = Framework.GetBankMoney(xPlayer)
 
     if bankBalance >= amount then
         -- Retirer de la banque et ajouter en liquide
-        xPlayer.removeAccountMoney('bank', amount)
-        xPlayer.addMoney(amount)
+        Framework.RemoveBankMoney(xPlayer, amount)
+        Framework.AddPlayerMoney(xPlayer, amount)
 
         -- Récupérer le nouveau solde
-        local newBankAccount = xPlayer.getAccount('bank')
-        local newBalance = newBankAccount and newBankAccount.money or 0
+        local newBalance = Framework.GetBankMoney(xPlayer)
 
         TriggerClientEvent('es_banque:updateBalance', _source, newBalance)
         TriggerClientEvent('es_banque:notify', _source, 'Retrait de $' .. amount .. ' effectué avec succès', 'success')
 
         -- Log
-        print(('[es_banque] %s a retiré $%s'):format(xPlayer.identifier, amount))
+        print(('[es_banque] %s a retiré $%s'):format(Framework.GetPlayerIdentifier(xPlayer), amount))
     else
         TriggerClientEvent('es_banque:notify', _source, 'Solde bancaire insuffisant', 'error')
     end
@@ -108,8 +96,8 @@ end)
 RegisterServerEvent('es_banque:transfer')
 AddEventHandler('es_banque:transfer', function(target, amount)
     local _source = source
-    local xPlayer = GetPlayer(_source)
-    local xTarget = GetPlayer(target)
+    local xPlayer = Framework.GetPlayer(_source)
+    local xTarget = Framework.GetPlayer(target)
 
     if not xPlayer then return end
 
@@ -125,7 +113,7 @@ AddEventHandler('es_banque:transfer', function(target, amount)
         return
     end
 
-    if xPlayer.identifier == xTarget.identifier then
+    if Framework.GetPlayerIdentifier(xPlayer) == Framework.GetPlayerIdentifier(xTarget) then
         TriggerClientEvent('es_banque:notify', _source, 'Vous ne pouvez pas vous transférer de l\'argent à vous-même', 'error')
         return
     end
@@ -136,20 +124,16 @@ AddEventHandler('es_banque:transfer', function(target, amount)
     end
 
     -- Vérifier le solde bancaire
-    local bankAccount = xPlayer.getAccount('bank')
-    local bankBalance = bankAccount and bankAccount.money or 0
+    local bankBalance = Framework.GetBankMoney(xPlayer)
 
     if bankBalance >= amount then
         -- Retirer de la banque de l'expéditeur et ajouter à celle du destinataire
-        xPlayer.removeAccountMoney('bank', amount)
-        xTarget.addAccountMoney('bank', amount)
+        Framework.RemoveBankMoney(xPlayer, amount)
+        Framework.AddBankMoney(xTarget, amount)
 
         -- Récupérer les nouveaux soldes
-        local newBankAccount = xPlayer.getAccount('bank')
-        local newBalance = newBankAccount and newBankAccount.money or 0
-
-        local targetBankAccount = xTarget.getAccount('bank')
-        local targetBalance = targetBankAccount and targetBankAccount.money or 0
+        local newBalance = Framework.GetBankMoney(xPlayer)
+        local targetBalance = Framework.GetBankMoney(xTarget)
 
         TriggerClientEvent('es_banque:updateBalance', _source, newBalance)
         TriggerClientEvent('es_banque:notify', _source, 'Transfert de $' .. amount .. ' effectué avec succès', 'success')
@@ -158,7 +142,7 @@ AddEventHandler('es_banque:transfer', function(target, amount)
         TriggerClientEvent('es_banque:updateBalance', target, targetBalance)
 
         -- Log
-        print(('[es_banque] %s a transféré $%s à %s'):format(xPlayer.identifier, amount, xTarget.identifier))
+        print(('[es_banque] %s a transféré $%s à %s'):format(Framework.GetPlayerIdentifier(xPlayer), amount, Framework.GetPlayerIdentifier(xTarget)))
     else
         TriggerClientEvent('es_banque:notify', _source, 'Solde bancaire insuffisant', 'error')
     end
@@ -168,11 +152,11 @@ end)
 RegisterServerEvent('es_banque:getTransactions')
 AddEventHandler('es_banque:getTransactions', function()
     local _source = source
-    local xPlayer = GetPlayer(_source)
+    local xPlayer = Framework.GetPlayer(_source)
 
     if xPlayer then
         MySQL.Async.fetchAll('SELECT * FROM bank_transactions WHERE identifier = @identifier ORDER BY date DESC LIMIT 10', {
-            ['@identifier'] = xPlayer.identifier
+            ['@identifier'] = Framework.GetPlayerIdentifier(xPlayer)
         }, function(transactions)
             TriggerClientEvent('es_banque:sendTransactions', _source, transactions)
         end)
@@ -181,23 +165,23 @@ end)
 
 -- Commande pour donner de l'argent (admin)
 RegisterCommand('givebank', function(source, args, rawCommand)
-    local xPlayer = GetPlayer(source)
+    local xPlayer = Framework.GetPlayer(source)
 
     if not xPlayer then return end
 
     -- Vérifier les permissions (à adapter selon votre système de permissions)
-    if xPlayer.getGroup() == 'admin' or xPlayer.getGroup() == 'superadmin' then
+    local group = Framework.GetPlayerGroup(xPlayer)
+    if group == 'admin' or group == 'superadmin' then
         local target = tonumber(args[1])
         local amount = tonumber(args[2])
 
         if target and amount then
-            local xTarget = GetPlayer(target)
+            local xTarget = Framework.GetPlayer(target)
 
             if xTarget then
-                xTarget.addAccountMoney('bank', amount)
+                Framework.AddBankMoney(xTarget, amount)
 
-                local targetBankAccount = xTarget.getAccount('bank')
-                local newBalance = targetBankAccount and targetBankAccount.money or 0
+                local newBalance = Framework.GetBankMoney(xTarget)
 
                 TriggerClientEvent('es_banque:notify', source, 'Vous avez donné $' .. amount .. ' à ' .. GetPlayerName(target), 'success')
                 TriggerClientEvent('es_banque:notify', target, 'Un administrateur vous a donné $' .. amount, 'success')

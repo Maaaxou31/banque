@@ -1,5 +1,4 @@
 -- Variables
-ESX = exports['es_extended']:getSharedObject()
 local bankBalance = 0
 local isInMenu = false
 local currentAccount = nil
@@ -7,11 +6,11 @@ local currentAccount = nil
 -- Fonction pour afficher les notifications
 function ShowNotification(message, type)
     if type == 'success' then
-        ESX.ShowNotification('~g~' .. message)
+        Framework.ShowNotification('~g~' .. message)
     elseif type == 'error' then
-        ESX.ShowNotification('~r~' .. message)
+        Framework.ShowNotification('~r~' .. message)
     else
-        ESX.ShowNotification(message)
+        Framework.ShowNotification(message)
     end
 end
 

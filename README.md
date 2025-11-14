@@ -1,6 +1,14 @@
 # ES_Banque - Système Bancaire pour FiveM
 
-Système bancaire complet pour serveurs FiveM GTA RP compatible avec **ESX (es_extended)** et **oxmysql**.
+Système bancaire complet pour serveurs FiveM GTA RP compatible avec **ESX (es_extended)**, **jaksam_core** et **oxmysql**.
+
+## Compatibilité Multi-Framework
+
+Ce système détecte **automatiquement** le framework utilisé sur votre serveur :
+- ✅ **ESX (es_extended)** - Compatible
+- ✅ **jaksam_core** - Compatible
+
+**Pas besoin de configuration** : Le système s'adapte automatiquement au framework détecté au démarrage !
 
 ## Fonctionnalités
 
@@ -46,9 +54,12 @@ ALTER TABLE `users` ADD COLUMN `bank` INT NOT NULL DEFAULT 0;
 
 ### 4. Dépendances
 
-Assurez-vous d'avoir installé :
-- **es_extended** (framework ESX)
-- **oxmysql** (base de données)
+Assurez-vous d'avoir installé **un des frameworks suivants** :
+- **es_extended** (framework ESX) **OU**
+- **jaksam_core** (framework jaksam)
+
+Et également :
+- **oxmysql** (base de données) - optionnel pour l'historique des transactions
 
 ## Utilisation
 
@@ -111,14 +122,25 @@ exports['banque']:AddBankMoney(identifier, amount)
 exports['banque']:RemoveBankMoney(identifier, amount)
 ```
 
-## Intégration avec ESX
+## Intégration Multi-Framework
 
-Le système utilise les fonctions d'ESX pour :
+Le système utilise un **bridge automatique** pour s'adapter au framework :
+
+### Avec ESX (es_extended) :
 - Obtenir les informations du joueur (`ESX.GetPlayerFromId`)
 - Gérer l'argent liquide (`getMoney`, `addMoney`, `removeMoney`)
 - Gérer l'argent bancaire (`getAccount('bank')`, `addAccountMoney`, `removeAccountMoney`)
 - Afficher les notifications (`ESX.ShowNotification`)
-- **Synchronisation automatique** : Toutes les modifications d'argent sont automatiquement synchronisées avec la base de données par ESX
+- **Synchronisation automatique** avec la base de données
+
+### Avec jaksam_core :
+- Obtenir les informations du joueur (`jaksam.GetPlayerFromId`)
+- Gérer l'argent liquide (`getMoney`, `addMoney`, `removeMoney`)
+- Gérer l'argent bancaire (`getAccount('bank')`, `addAccountMoney`, `removeAccountMoney`)
+- Afficher les notifications (`jaksam.ShowNotification`)
+- **Synchronisation automatique** avec la base de données
+
+Le système **détecte automatiquement** au démarrage quel framework est présent et utilise les bonnes fonctions.
 
 ## Structure des fichiers
 
@@ -134,6 +156,7 @@ banque/
 │   └── script.js         # Logique UI
 ├── sql/
 │   └── install.sql       # Schéma de base de données
+├── bridge.lua            # Bridge multi-framework (ESX/jaksam)
 ├── config.lua            # Configuration
 ├── fxmanifest.lua        # Manifest FiveM
 └── README.md             # Documentation
@@ -152,11 +175,14 @@ Ce projet est libre d'utilisation pour vos serveurs FiveM.
 
 ## Avantages de cette version
 
-- **Synchronisation automatique** : L'argent est automatiquement synchronisé avec la base de données via ESX
-- **Pas de modification d'es_extended nécessaire** : Fonctionne directement avec ESX sans modifications
-- **Compatible avec tous les scripts ESX** : Utilise les mêmes fonctions standard qu'ESX pour gérer l'argent
-- **Sécurisé** : Toutes les transactions sont gérées côté serveur
+- **🔄 Compatible Multi-Framework** : Fonctionne avec ESX ET jaksam_core automatiquement
+- **🚀 Détection automatique** : Pas besoin de choisir le framework, c'est automatique
+- **💾 Synchronisation automatique** : L'argent est automatiquement synchronisé avec la base de données
+- **✅ Plug & Play** : Aucune modification du framework nécessaire
+- **🔒 Sécurisé** : Toutes les transactions sont gérées côté serveur
+- **🎨 Interface moderne** : UI responsive et intuitive
 
 ## Crédits
 
-Développé pour les serveurs FiveM GTA RP utilisant ESX (es_extended) et oxmysql.
+Développé pour les serveurs FiveM GTA RP.
+Compatible avec ESX (es_extended), jaksam_core et oxmysql.
