@@ -1,25 +1,17 @@
 -- Variables
-local JaksamCore = nil
+ESX = exports['es_extended']:getSharedObject()
 local bankBalance = 0
 local isInMenu = false
 local currentAccount = nil
 
--- Initialisation de JaksamCore
-Citizen.CreateThread(function()
-    while JaksamCore == nil do
-        TriggerEvent('jaksam_core:getSharedObject', function(obj) JaksamCore = obj end)
-        Citizen.Wait(0)
-    end
-end)
-
 -- Fonction pour afficher les notifications
 function ShowNotification(message, type)
     if type == 'success' then
-        JaksamCore.ShowNotification('~g~' .. message)
+        ESX.ShowNotification('~g~' .. message)
     elseif type == 'error' then
-        JaksamCore.ShowNotification('~r~' .. message)
+        ESX.ShowNotification('~r~' .. message)
     else
-        JaksamCore.ShowNotification(message)
+        ESX.ShowNotification(message)
     end
 end
 

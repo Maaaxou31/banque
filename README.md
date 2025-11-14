@@ -1,6 +1,6 @@
 # ES_Banque - Système Bancaire pour FiveM
 
-Système bancaire complet pour serveurs FiveM GTA RP compatible avec **jaksam_core**, **jaksam_inventory** et **oxmysql**.
+Système bancaire complet pour serveurs FiveM GTA RP compatible avec **ESX (es_extended)** et **oxmysql**.
 
 ## Fonctionnalités
 
@@ -47,7 +47,7 @@ ALTER TABLE `users` ADD COLUMN `bank` INT NOT NULL DEFAULT 0;
 ### 4. Dépendances
 
 Assurez-vous d'avoir installé :
-- **jaksam_core** (framework)
+- **es_extended** (framework ESX)
 - **oxmysql** (base de données)
 
 ## Utilisation
@@ -111,12 +111,14 @@ exports['banque']:AddBankMoney(identifier, amount)
 exports['banque']:RemoveBankMoney(identifier, amount)
 ```
 
-## Intégration avec jaksam_core
+## Intégration avec ESX
 
-Le système utilise les fonctions de jaksam_core pour :
-- Obtenir les informations du joueur
+Le système utilise les fonctions d'ESX pour :
+- Obtenir les informations du joueur (`ESX.GetPlayerFromId`)
 - Gérer l'argent liquide (`getMoney`, `addMoney`, `removeMoney`)
-- Afficher les notifications
+- Gérer l'argent bancaire (`getAccount('bank')`, `addAccountMoney`, `removeAccountMoney`)
+- Afficher les notifications (`ESX.ShowNotification`)
+- **Synchronisation automatique** : Toutes les modifications d'argent sont automatiquement synchronisées avec la base de données par ESX
 
 ## Structure des fichiers
 
@@ -148,6 +150,13 @@ Pour toute question ou problème :
 
 Ce projet est libre d'utilisation pour vos serveurs FiveM.
 
+## Avantages de cette version
+
+- **Synchronisation automatique** : L'argent est automatiquement synchronisé avec la base de données via ESX
+- **Pas de modification d'es_extended nécessaire** : Fonctionne directement avec ESX sans modifications
+- **Compatible avec tous les scripts ESX** : Utilise les mêmes fonctions standard qu'ESX pour gérer l'argent
+- **Sécurisé** : Toutes les transactions sont gérées côté serveur
+
 ## Crédits
 
-Développé pour les serveurs FiveM GTA RP utilisant jaksam_core et oxmysql.
+Développé pour les serveurs FiveM GTA RP utilisant ESX (es_extended) et oxmysql.

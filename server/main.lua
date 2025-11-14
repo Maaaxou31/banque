@@ -1,17 +1,9 @@
 -- Variables globales
-local JaksamCore = nil
-
--- Initialisation de JaksamCore
-Citizen.CreateThread(function()
-    while JaksamCore == nil do
-        TriggerEvent('jaksam_core:getSharedObject', function(obj) JaksamCore = obj end)
-        Citizen.Wait(0)
-    end
-end)
+ESX = exports['es_extended']:getSharedObject()
 
 -- Fonction pour obtenir le joueur
 local function GetPlayer(source)
-    return JaksamCore.GetPlayerFromId(source)
+    return ESX.GetPlayerFromId(source)
 end
 
 -- Récupérer le solde bancaire d'un joueur
@@ -21,12 +13,9 @@ AddEventHandler('es_banque:getBalance', function()
     local xPlayer = GetPlayer(_source)
 
     if xPlayer then
-        MySQL.Async.fetchScalar('SELECT bank FROM users WHERE identifier = @identifier', {
-            ['@identifier'] = xPlayer.identifier
-        }, function(bank)
-            local balance = bank or 0
-            TriggerClientEvent('es_banque:updateBalance', _source, balance)
-        end)
+        local bankAccount = xPlayer.getAccount('bank')
+        local balance = bankAccount and bankAccount.money or 0
+        TriggerClientEvent('es_banque:updateBalance', _source, balance)
     end
 end)
 
@@ -54,31 +43,19 @@ AddEventHandler('es_banque:deposit', function(amount)
     local playerMoney = xPlayer.getMoney()
 
     if playerMoney >= amount then
-        -- Retirer l'argent liquide
+        -- Retirer l'argent liquide et ajouter à la banque
         xPlayer.removeMoney(amount)
+        xPlayer.addAccountMoney('bank', amount)
 
-        -- Ajouter à la banque
-        MySQL.Async.execute('UPDATE users SET bank = bank + @amount WHERE identifier = @identifier', {
-            ['@amount'] = amount,
-            ['@identifier'] = xPlayer.identifier
-        }, function(rowsChanged)
-            if rowsChanged > 0 then
-                -- Récupérer le nouveau solde
-                MySQL.Async.fetchScalar('SELECT bank FROM users WHERE identifier = @identifier', {
-                    ['@identifier'] = xPlayer.identifier
-                }, function(newBalance)
-                    TriggerClientEvent('es_banque:updateBalance', _source, newBalance)
-                    TriggerClientEvent('es_banque:notify', _source, 'Dépôt de $' .. amount .. ' effectué avec succès', 'success')
+        -- Récupérer le nouveau solde
+        local bankAccount = xPlayer.getAccount('bank')
+        local newBalance = bankAccount and bankAccount.money or 0
 
-                    -- Log
-                    print(('[es_banque] %s a déposé $%s'):format(xPlayer.identifier, amount))
-                end)
-            else
-                -- Rembourser en cas d'erreur
-                xPlayer.addMoney(amount)
-                TriggerClientEvent('es_banque:notify', _source, 'Erreur lors du dépôt', 'error')
-            end
-        end)
+        TriggerClientEvent('es_banque:updateBalance', _source, newBalance)
+        TriggerClientEvent('es_banque:notify', _source, 'Dépôt de $' .. amount .. ' effectué avec succès', 'success')
+
+        -- Log
+        print(('[es_banque] %s a déposé $%s'):format(xPlayer.identifier, amount))
     else
         TriggerClientEvent('es_banque:notify', _source, 'Vous n\'avez pas assez d\'argent liquide', 'error')
     end
@@ -105,39 +82,26 @@ AddEventHandler('es_banque:withdraw', function(amount)
     end
 
     -- Vérifier le solde bancaire
-    MySQL.Async.fetchScalar('SELECT bank FROM users WHERE identifier = @identifier', {
-        ['@identifier'] = xPlayer.identifier
-    }, function(bank)
-        local bankBalance = bank or 0
+    local bankAccount = xPlayer.getAccount('bank')
+    local bankBalance = bankAccount and bankAccount.money or 0
 
-        if bankBalance >= amount then
-            -- Retirer de la banque
-            MySQL.Async.execute('UPDATE users SET bank = bank - @amount WHERE identifier = @identifier', {
-                ['@amount'] = amount,
-                ['@identifier'] = xPlayer.identifier
-            }, function(rowsChanged)
-                if rowsChanged > 0 then
-                    -- Ajouter l'argent liquide
-                    xPlayer.addMoney(amount)
+    if bankBalance >= amount then
+        -- Retirer de la banque et ajouter en liquide
+        xPlayer.removeAccountMoney('bank', amount)
+        xPlayer.addMoney(amount)
 
-                    -- Récupérer le nouveau solde
-                    MySQL.Async.fetchScalar('SELECT bank FROM users WHERE identifier = @identifier', {
-                        ['@identifier'] = xPlayer.identifier
-                    }, function(newBalance)
-                        TriggerClientEvent('es_banque:updateBalance', _source, newBalance)
-                        TriggerClientEvent('es_banque:notify', _source, 'Retrait de $' .. amount .. ' effectué avec succès', 'success')
+        -- Récupérer le nouveau solde
+        local newBankAccount = xPlayer.getAccount('bank')
+        local newBalance = newBankAccount and newBankAccount.money or 0
 
-                        -- Log
-                        print(('[es_banque] %s a retiré $%s'):format(xPlayer.identifier, amount))
-                    end)
-                else
-                    TriggerClientEvent('es_banque:notify', _source, 'Erreur lors du retrait', 'error')
-                end
-            end)
-        else
-            TriggerClientEvent('es_banque:notify', _source, 'Solde bancaire insuffisant', 'error')
-        end
-    end)
+        TriggerClientEvent('es_banque:updateBalance', _source, newBalance)
+        TriggerClientEvent('es_banque:notify', _source, 'Retrait de $' .. amount .. ' effectué avec succès', 'success')
+
+        -- Log
+        print(('[es_banque] %s a retiré $%s'):format(xPlayer.identifier, amount))
+    else
+        TriggerClientEvent('es_banque:notify', _source, 'Solde bancaire insuffisant', 'error')
+    end
 end)
 
 -- Transférer de l'argent à un autre joueur
@@ -172,59 +136,32 @@ AddEventHandler('es_banque:transfer', function(target, amount)
     end
 
     -- Vérifier le solde bancaire
-    MySQL.Async.fetchScalar('SELECT bank FROM users WHERE identifier = @identifier', {
-        ['@identifier'] = xPlayer.identifier
-    }, function(bank)
-        local bankBalance = bank or 0
+    local bankAccount = xPlayer.getAccount('bank')
+    local bankBalance = bankAccount and bankAccount.money or 0
 
-        if bankBalance >= amount then
-            -- Retirer de la banque de l'expéditeur
-            MySQL.Async.execute('UPDATE users SET bank = bank - @amount WHERE identifier = @identifier', {
-                ['@amount'] = amount,
-                ['@identifier'] = xPlayer.identifier
-            }, function(rowsChanged)
-                if rowsChanged > 0 then
-                    -- Ajouter à la banque du destinataire
-                    MySQL.Async.execute('UPDATE users SET bank = bank + @amount WHERE identifier = @identifier', {
-                        ['@amount'] = amount,
-                        ['@identifier'] = xTarget.identifier
-                    }, function(rowsChanged2)
-                        if rowsChanged2 > 0 then
-                            -- Récupérer les nouveaux soldes
-                            MySQL.Async.fetchScalar('SELECT bank FROM users WHERE identifier = @identifier', {
-                                ['@identifier'] = xPlayer.identifier
-                            }, function(newBalance)
-                                TriggerClientEvent('es_banque:updateBalance', _source, newBalance)
-                                TriggerClientEvent('es_banque:notify', _source, 'Transfert de $' .. amount .. ' effectué avec succès', 'success')
-                                TriggerClientEvent('es_banque:notify', target, 'Vous avez reçu $' .. amount, 'success')
+    if bankBalance >= amount then
+        -- Retirer de la banque de l'expéditeur et ajouter à celle du destinataire
+        xPlayer.removeAccountMoney('bank', amount)
+        xTarget.addAccountMoney('bank', amount)
 
-                                -- Mettre à jour le solde du destinataire
-                                MySQL.Async.fetchScalar('SELECT bank FROM users WHERE identifier = @identifier', {
-                                    ['@identifier'] = xTarget.identifier
-                                }, function(targetBalance)
-                                    TriggerClientEvent('es_banque:updateBalance', target, targetBalance)
-                                end)
+        -- Récupérer les nouveaux soldes
+        local newBankAccount = xPlayer.getAccount('bank')
+        local newBalance = newBankAccount and newBankAccount.money or 0
 
-                                -- Log
-                                print(('[es_banque] %s a transféré $%s à %s'):format(xPlayer.identifier, amount, xTarget.identifier))
-                            end)
-                        else
-                            -- Rembourser en cas d'erreur
-                            MySQL.Async.execute('UPDATE users SET bank = bank + @amount WHERE identifier = @identifier', {
-                                ['@amount'] = amount,
-                                ['@identifier'] = xPlayer.identifier
-                            })
-                            TriggerClientEvent('es_banque:notify', _source, 'Erreur lors du transfert', 'error')
-                        end
-                    end)
-                else
-                    TriggerClientEvent('es_banque:notify', _source, 'Erreur lors du transfert', 'error')
-                end
-            end)
-        else
-            TriggerClientEvent('es_banque:notify', _source, 'Solde bancaire insuffisant', 'error')
-        end
-    end)
+        local targetBankAccount = xTarget.getAccount('bank')
+        local targetBalance = targetBankAccount and targetBankAccount.money or 0
+
+        TriggerClientEvent('es_banque:updateBalance', _source, newBalance)
+        TriggerClientEvent('es_banque:notify', _source, 'Transfert de $' .. amount .. ' effectué avec succès', 'success')
+
+        TriggerClientEvent('es_banque:notify', target, 'Vous avez reçu $' .. amount, 'success')
+        TriggerClientEvent('es_banque:updateBalance', target, targetBalance)
+
+        -- Log
+        print(('[es_banque] %s a transféré $%s à %s'):format(xPlayer.identifier, amount, xTarget.identifier))
+    else
+        TriggerClientEvent('es_banque:notify', _source, 'Solde bancaire insuffisant', 'error')
+    end
 end)
 
 -- Obtenir la liste des transactions
@@ -257,22 +194,14 @@ RegisterCommand('givebank', function(source, args, rawCommand)
             local xTarget = GetPlayer(target)
 
             if xTarget then
-                MySQL.Async.execute('UPDATE users SET bank = bank + @amount WHERE identifier = @identifier', {
-                    ['@amount'] = amount,
-                    ['@identifier'] = xTarget.identifier
-                }, function(rowsChanged)
-                    if rowsChanged > 0 then
-                        TriggerClientEvent('es_banque:notify', source, 'Vous avez donné $' .. amount .. ' à ' .. GetPlayerName(target), 'success')
-                        TriggerClientEvent('es_banque:notify', target, 'Un administrateur vous a donné $' .. amount, 'success')
+                xTarget.addAccountMoney('bank', amount)
 
-                        -- Mettre à jour le solde
-                        MySQL.Async.fetchScalar('SELECT bank FROM users WHERE identifier = @identifier', {
-                            ['@identifier'] = xTarget.identifier
-                        }, function(newBalance)
-                            TriggerClientEvent('es_banque:updateBalance', target, newBalance)
-                        end)
-                    end
-                end)
+                local targetBankAccount = xTarget.getAccount('bank')
+                local newBalance = targetBankAccount and targetBankAccount.money or 0
+
+                TriggerClientEvent('es_banque:notify', source, 'Vous avez donné $' .. amount .. ' à ' .. GetPlayerName(target), 'success')
+                TriggerClientEvent('es_banque:notify', target, 'Un administrateur vous a donné $' .. amount, 'success')
+                TriggerClientEvent('es_banque:updateBalance', target, newBalance)
             else
                 TriggerClientEvent('es_banque:notify', source, 'Joueur introuvable', 'error')
             end

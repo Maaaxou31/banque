@@ -2,8 +2,8 @@ fx_version 'cerulean'
 game 'gta5'
 
 author 'Votre Nom'
-description 'Système bancaire pour FiveM compatible avec jaksam_core'
-version '1.0.0'
+description 'Système bancaire pour FiveM compatible avec ESX (es_extended)'
+version '1.1.0'
 
 shared_scripts {
     'config.lua'
@@ -14,7 +14,6 @@ client_scripts {
 }
 
 server_scripts {
-    '@oxmysql/lib/MySQL.lua',
     'server/*.lua'
 }
 
